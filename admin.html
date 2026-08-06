@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>𝙰𝚂𝙸☠ - Admin Panel</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root { 
+      --bg: #040806; 
+      --panel: #0d1410; 
+      --primary: #00ff66; 
+      --primary-hover: #00cc52; 
+      --text: #ffffff; 
+      --border: rgba(0, 255, 102, 0.15); 
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; position: relative; }
+    
+    #loginScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); display: none; justify-content: center; align-items: center; z-index: 10000; }
+    .login-box { background: var(--panel); padding: 40px; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; border: 1px solid var(--border); }
+    .login-box h2 { color: var(--primary); margin-bottom: 20px; }
+    .login-box input { width: 100%; padding: 12px; margin-bottom: 15px; background: #000; border: 1px solid var(--border); color: white; border-radius: 8px; text-align: center; }
+    .login-box button { background: var(--primary); color: #000; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+
+    .header { background: var(--panel); padding: 15px 25px; display: flex; align-items: center; border-bottom: 1px solid var(--border); justify-content: space-between; }
+    .site-name { font-size: 20px; font-weight: bold; display: flex; align-items: center; gap: 10px; }
+    .site-name i { color: var(--primary); }
+
+    .menu-toggle { font-size: 22px; cursor: pointer; color: var(--primary); }
+
+    .sidebar { position: fixed; left: -280px; top: 0; height: 100%; width: 280px; background: var(--panel); z-index: 999; transition: 0.3s; padding-top: 80px; border-right: 1px solid var(--border); }
+    .sidebar.open { left: 0; }
+    .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); z-index: 998; }
+    .sidebar-overlay.show { display: block; }
+    .menu-item { display: flex; align-items: center; padding: 15px 25px; color: var(--text); text-decoration: none; cursor: pointer; font-size: 14px; font-weight: bold; }
+    .menu-item i { margin-right: 15px; width: 20px; text-align: center; color: var(--primary); }
+    .menu-item:hover, .menu-item.active { background: rgba(0, 255, 102, 0.08); color: var(--primary); }
+
+    .main-content { max-width: 850px; margin: 30px auto; padding: 0 20px; }
+    .section-card { background: var(--panel); padding: 30px; border-radius: 12px; border: 1px solid var(--border); display: none; }
+    .section-card.active { display: block; }
+    .section-card h3 { border-bottom: 2px solid var(--primary); padding-bottom: 8px; margin-bottom: 20px; }
+
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; margin-bottom: 6px; font-weight: bold; font-size: 13px; color: #ccc; }
+    .form-control { width: 100%; padding: 11px 15px; background: #050a07; border: 1px solid var(--border); border-radius: 8px; color: white; outline: none; }
+    .form-control:focus { border-color: var(--primary); }
+    
+    .btn-submit { background: var(--primary); color: #000; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
+    
+    .scroll-list { max-height: 280px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; background: #050a07; }
+    .list-item { padding: 12px 18px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+    .delete-btn { background: #7c040a; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
+
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1001; justify-content: center; align-items: center; padding: 20px; }
+    .modal-box { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 480px; padding: 30px; position: relative; }
+    .close-modal { position: absolute; top: 15px; right: 15px; font-size: 22px; cursor: pointer; color: #777; }
+    
+    .loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10001; justify-content: center; align-items: center; font-size: 16px; color: white; }
+  </style>
+</head>
+<body>
+
+  <div class="loading-overlay" id="loadingOverlay">
+    <div style="text-align: center;">
+      <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 35px; color: var(--primary); margin-bottom: 10px;"></i>
+      <div>Uploading/Updating DB...</div>
+    </div>
+  </div>
+
+  <div id="loginScreen">
+    <div class="login-box">
+      <h2>𝙰𝚂𝙸☠ Portal Lock</h2>
+      <input type="password" id="adminPassInput" placeholder="Enter Secure Password">
+      <button onclick="attemptLogin()">Enter Admin Area</button>
+    </div>
+  </div>
+
+  <div class="header">
+    <span class="site-name" onclick="toggleSidebar()"><i class="fa-solid fa-gears"></i> 𝙰𝚂𝙸☠ Sub Studio Admin</span>
+    <span id="sessionStatus" style="font-size:12px; font-weight:bold; color:var(--primary);">Connecting...</span>
+  </div>
+
+  <div class="sidebar-overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+  <div class="sidebar" id="sidebar">
+    <div class="menu-item active" onclick="switchSection('addPostSec')"><i class="fa-solid fa-plus"></i> Create Post</div>
+    <div class="menu-item" onclick="switchSection('selectPostSec')"><i class="fa-solid fa-list"></i> Episodes Manager</div>
+    <div class="menu-item" onclick="switchSection('deletePostSec')"><i class="fa-solid fa-trash-can"></i> Delete Posts</div>
+    <div class="menu-item" onclick="switchSection('shortenersSec')"><i class="fa-solid fa-link"></i> Rotation Links</div>
+    <div class="menu-item" onclick="switchSection('premiumSec')"><i class="fa-solid fa-user-shield"></i> Premium Passes</div>
+    <div class="menu-item" onclick="switchSection('paidRequestsSec')"><i class="fa-solid fa-lock"></i> Decrypt Keys</div>
+    <div class="menu-item" onclick="switchSection('linksSec')"><i class="fa-solid fa-sliders"></i> Global Settings</div>
+  </div>
+
+  <div class="main-content">
+
+    <!-- CREATE POST -->
+    <div id="addPostSec" class="section-card active">
+      <h3>Add New Video Post</h3>
+      
+      <div class="form-group" style="background: rgba(0,255,102,0.02); padding:15px; border-radius:8px; border:1px dashed var(--border);">
+        <label style="color:var(--primary); font-weight:bold;"><i class="fa-solid fa-wand-magic-sparkles"></i> Auto Post Fill Parser</label>
+        <textarea id="autoDetectInput" class="form-control" style="height: 70px; font-size:12px;" placeholder="Paste text formatted: Name, Category, Season, Release Date, story..." oninput="handleAutoDetect()"></textarea>
+      </div>
+
+      <form id="addPostForm" onsubmit="submitPost(event)" style="margin-top:15px;">
+        <div class="form-group">
+          <label>Poster Image File (Direct Cloud Upload)</label>
+          <input type="file" id="postImageFile" class="form-control" accept="image/*" onchange="uploadImageToSanity()">
+          <input type="text" id="postImage" class="form-control" placeholder="OR Paste external image url directly" style="margin-top: 10px;">
+          <small id="uploadStatus" style="color: var(--primary); display:none;"></small>
+        </div>
+        <div class="form-group">
+          <label>Post/Anime Name</label>
+          <input type="text" id="postName" class="form-control" required placeholder="Naruto: Shippuden">
+        </div>
+        <div class="form-group">
+          <label>Release Date/Year</label>
+          <input type="text" id="postRelease" class="form-control" placeholder="2012">
+        </div>
+        <div class="form-group">
+          <label>Genre tags (Separated by space)</label>
+          <input type="text" id="postGenre" class="form-control" placeholder="Action Shounen Fantasy">
+        </div>
+        <div class="form-group">
+          <label>Season (e.g. Season 01)</label>
+          <input type="text" id="postSeason" class="form-control" placeholder="Season 1">
+        </div>
+        <div class="form-group">
+          <label>Short Story/Summary</label>
+          <textarea id="postStory" class="form-control" placeholder="Describe short synopsis here..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Category Group</label>
+          <input type="text" id="postCategory" class="form-control" placeholder="e.g. Hindi Subbed Anime" required>
+        </div>
+        <button type="submit" class="btn-submit">Publish Content</button>
+      </form>
+    </div>
+
+    <!-- EPISODES MANAGER -->
+    <div id="selectPostSec" class="section-card">
+      <h3>Episodes Database Manager</h3>
+      <input type="text" id="epSearch" class="form-control" placeholder="🔍 Type anime name..." oninput="filterEpList()" style="margin-bottom: 15px;">
+      <div class="scroll-list" id="selectionList"></div>
+    </div>
+
+    <!-- DELETIONS -->
+    <div id="deletePostSec" class="section-card">
+      <h3>Global Deletion Panel</h3>
+      <div class="scroll-list" id="deletionList"></div>
+    </div>
+
+    <!-- SHORTENERS -->
+    <div id="shortenersSec" class="section-card">
+      <h3>Rotation Shortener links</h3>
+      <div class="scroll-list" id="shortenerList" style="margin-bottom: 20px;"></div>
+      
+      <h4>Setup Sh. API link</h4>
+      <form id="shortenerForm" onsubmit="submitShortener(event)">
+        <div class="form-group">
+          <label>Shortener Domain Link (e.g. adrinolinks.in)</label>
+          <input type="text" id="dashUrl" class="form-control" required placeholder="adrinolinks.in">
+        </div>
+        <div class="form-group">
+          <label>Developer API Secret Key</label>
+          <input type="text" id="apiKey" class="form-control" required placeholder="API Access Token key">
+        </div>
+        <button type="submit" class="btn-submit">Add Link Rotation</button>
+      </form>
+    </div>
+
+    <!-- PREMIUM MANAGEMENT -->
+    <div id="premiumSec" class="section-card">
+      <h3>System VIP Passes</h3>
+      <div class="scroll-list" id="premiumUsersList" style="margin-bottom: 20px;"></div>
+      
+      <h4>Activate Pro Gmail Code</h4>
+      <form id="premiumForm" onsubmit="submitPremium(event)">
+        <div class="form-group">
+          <label>Customer Gmail Address</label>
+          <input type="email" id="premUser" class="form-control" required placeholder="user@gmail.com">
+        </div>
+        <div class="form-group">
+          <label>Set Plan Access Code/Password</label>
+          <input type="text" id="premPass" class="form-control" required placeholder="SecretPass99">
+        </div>
+        <button type="submit" class="btn-submit">Add Premium User</button>
+      </form>
+    </div>
+
+    <!-- DECRYPT SYSTEM KEYS -->
+    <div id="paidRequestsSec" class="section-card">
+      <h3>Decrypt Code Links (Locked Files)</h3>
+      <div class="scroll-list" id="paidRequestsList" style="margin-bottom: 20px;"></div>
+
+      <h4>Create New Decrypted Code Link</h4>
+      <form id="paidRequestsForm" onsubmit="submitPaidRequest(event)">
+        <div class="form-group">
+          <label>Secret Code Key</label>
+          <input type="text" id="paidPass" class="form-control" required placeholder="KEYPASS55">
+        </div>
+        <div class="form-group">
+          <label>Original Decrypted Target Link</label>
+          <input type="url" id="paidUrl" class="form-control" required placeholder="https://drive.google.com/...">
+        </div>
+        <button type="submit" class="btn-submit">Deploy Decrypted Key</button>
+      </form>
+    </div>
+
+    <!-- GENERAL SETTINGS -->
+    <div id="linksSec" class="section-card">
+      <h3>Global Portal Settings</h3>
+      <form id="settingsForm" onsubmit="submitSettings(event)">
+        <div class="form-group">
+          <label>Telegram Channel link</label>
+          <input type="text" id="chanLink" class="form-control" placeholder="https://t.me/yourchannel">
+        </div>
+        <div class="form-group">
+          <label>Global Player Private Key Passcode</label>
+          <input type="text" id="playerPass" class="form-control" placeholder="stream123">
+        </div>
+        <div class="form-group">
+          <label>Admin Access Security Password</label>
+          <input type="text" id="adminPanelPass" class="form-control" placeholder="Change admin access key">
+        </div>
+        <button type="submit" class="btn-submit">Apply Changes</button>
+      </form>
+    </div>
+
+  </div>
+
+  <!-- EPISODE MODAL -->
+  <div class="modal" id="modal">
+    <div class="modal-box">
+      <span class="close-modal" onclick="closeModal()">&times;</span>
+      <h3 style="line-height:1.3;">Edit Node of:<br><span id="modalPostName" style="color:var(--primary);"></span></h3>
+      
+      <form id="episodeForm" onsubmit="submitEpisode(event)" style="margin-top:15px; padding-bottom: 15px; border-bottom: 1px solid var(--border);">
+        <input type="hidden" id="modalPostId">
+        <div class="form-group">
+          <label>Episode Label (e.g. 01, Full Pack, Special)</label>
+          <input type="text" id="epLabel" class="form-control" required placeholder="01">
+        </div>
+        <div class="form-group">
+          <label>Quality Resolution</label>
+          <select id="epQuality" class="form-control">
+            <option value="SD (480p)">SD (480p)</option>
+            <option value="HD (720p)" selected>HD (720p)</option>
+            <option value="FHD (1080p)">FHD (1080p)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Decrypted File Download Link</label>
+          <input type="text" id="epLink" class="form-control" placeholder="https://drive.google.com/...">
+        </div>
+        <div class="form-group">
+          <label>Stream Play Embed URL (Optional)</label>
+          <input type="text" id="epPlay" class="form-control" placeholder="https://embeddedplayer.com/embed...">
+        </div>
+        <button type="submit" class="btn-submit">Add Node/Episode</button>
+      </form>
+
+      <h4 style="margin: 15px 0 10px 0; color:var(--primary);">Linked Node Nodes:</h4>
+      <div class="scroll-list" id="modalEpisodesContainer" style="max-height:120px;"></div>
+    </div>
+  </div>
+
+  <script>
+    const PRIMARY_SANITY_PROJECT_ID = 'jfpu21fj'; 
+    const PRIMARY_SANITY_DATASET = 'production';
+    const PRIMARY_SANITY_WRITE_TOKEN = 'sk1Wp94Vrcdhcd11jrnINEeSwPuxfkuUEy1yfIjrkhfD3uE2Nwx6FuDxhHI1RCSTv7kSBbfQEOlWSNQ3QpbUc1ppOYiRMlqgR7sYODM5m6s91zzvZJztaqbidcQIwNkZvIs0klTs4uOufKIHcgynIAWlfwcZboK6YbqSQFnXBjOMUKzo3uBZ'; 
+
+    let loadedPosts = [];
+    let dbSettings = {};
+
+    window.onload = function() {
+      verifyDatabaseAccess();
+    };
+
+    async function verifyDatabaseAccess() {
+      showSpinner(true);
+      const stat = document.getElementById("sessionStatus");
+      try {
+        const query = encodeURIComponent(`*[_type == "setting"]`);
+        const url = `https://${PRIMARY_SANITY_PROJECT_ID}.api.sanity.io/v2021-06-07/data/query/${PRIMARY_SANITY_DATASET}?query=${query}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        
+        dbSettings = {};
+        if (data.result) {
+          data.result.forEach(doc => dbSettings[doc.key] = doc.value);
+        }
+
+        stat.innerText = "System Live";
+        
+        const correctPass = dbSettings['admin_password'];
+        if (!correctPass) {
+          document.getElementById("loginScreen").style.display = "none";
+          syncAdminDashboard();
+        } else {
+          const auth = localStorage.getItem("admin_session");
+          if (auth === correctPass) {
+            document.getElementById("loginScreen").style.display = "none";
+            syncAdminDashboard();
+          } else {
+            document.getElementById("loginScreen").style.display = "flex";
+          }
+        }
+      } catch(e) {
+        stat.innerText = "Offline Mode";
+        stat.style.color = "red";
+      } finally {
+        showSpinner(false);
+      }
+    }
+
+    function attemptLogin() {
+      const enter = document.getElementById("adminPassInput").value.trim();
+      const correct = dbSettings['admin_password'];
+      if (enter === correct) {
+        localStorage.setItem("admin_session", enter);
+        document.getElementById("loginScreen").style.display = "none";
+        syncAdminDashboard();
+      } else {
+        alert("Access key invalid!");
+      }
+    }
+
+    async function syncAdminDashboard() {
+      showSpinner(true);
+      try {
+        const query = encodeURIComponent(`*[_type in ["post", "shortener", "premiumuser", "paidrequest", "setting"]]`);
+        const url = `https://${PRIMARY_SANITY_PROJECT_ID}.api.sanity.io/v2021-06-07/data/query/${PRIMARY_SANITY_DATASET}?query=${query}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const docs = data.result || [];
+
+        loadedPosts = docs.filter(d => d._type === "post");
+        const shorteners = docs.filter(d => d._type === "shortener");
+        const premium = docs.filter(d => d._type === "premiumuser");
+        const paid = docs.filter(d => d._type === "paidrequest");
+        const settings = docs.filter(d => d._type === "setting");
+
+        settings.forEach(doc => dbSettings[doc.key] = doc.value);
+
+        renderAdmin(loadedPosts, shorteners, premium, paid, dbSettings);
+      } catch(e) {
+        console.error(e);
+      } finally {
+        showSpinner(false);
+      }
+    }
+
+    function renderAdmin(posts, shorteners, premium, paid, settings) {
+      document.getElementById("selectionList").innerHTML = posts.map(p => `
+        <div class="list-item">
+          <span>${p.name} [${p.category}]</span>
+          <button class="delete-btn" style="background:#0066cc;" onclick="openEpModal('${p._id}')">Edit Nodes</button>
+        </div>
+      `).join("");
+
+      document.getElementById("deletionList").innerHTML = posts.map(p => `
+        <div class="list-item">
+          <span>${p.name}</span>
+          <button class="delete-btn" onclick="deleteFullPost('${p._id}')">Delete Content</button>
+        </div>
+      `).join("");
+
+      document.getElementById("shortenerList").innerHTML = shorteners.map(s => `
+        <div class="list-item">
+          <span>${s.dashboard_url}</span>
+          <button class="delete-btn" onclick="deleteDoc('${s._id}')">Remove</button>
+        </div>
+      `).join("");
+
+      document.getElementById("premiumUsersList").innerHTML = premium.map(u => `
+        <div class="list-item">
+          <span>${u.gmail} (Pass: ${u.password})</span>
+          <button class="delete-btn" onclick="deleteDoc('${u._id}')">Deactivate</button>
+        </div>
+      `).join("");
+
+      document.getElementById("paidRequestsList").innerHTML = paid.map(r => `
+        <div class="list-item">
+          <span>Code: ${r.password} -> ${r.original_link.slice(0,30)}...</span>
+          <button class="delete-btn" onclick="deleteDoc('${r._id}')">Delete</button>
+        </div>
+      `).join("");
+
+      document.getElementById("chanLink").value = settings.channel_link || "";
+      document.getElementById("playerPass").value = settings.player_password || "";
+      document.getElementById("adminPanelPass").value = settings.admin_password || "";
+    }
+
+    function handleAutoDetect() {
+      const text = document.getElementById("autoDetectInput").value.trim();
+      if (!text) return;
+      
+      const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+      if (lines.length >= 1) document.getElementById("postName").value = lines[0];
+      if (lines.length >= 2) document.getElementById("postGenre").value = lines[1];
+      if (lines.length >= 3) document.getElementById("postStory").value = lines[2];
+      if (lines.length >= 4) document.getElementById("postRelease").value = lines[3];
+    }
+
+    async function uploadImageToSanity() {
+      const fileInput = document.getElementById("postImageFile");
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      const stat = document.getElementById("uploadStatus");
+      stat.style.display = "block";
+      stat.innerText = "Uploading asset to storage...";
+
+      try {
+        const url = `https://${PRIMARY_SANITY_PROJECT_ID}.api.sanity.io/v2021-06-07/assets/images/${PRIMARY_SANITY_DATASET}`;
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${PRIMARY_SANITY_WRITE_TOKEN}`,
+            "Content-Type": file.type
+          },
+          body: file
+        });
+        const data = await res.json();
+        if (data.document?.url) {
+          document.getElementById("postImage").value = data.document.url;
+          stat.innerText = "Uploaded successfully!";
+          stat.style.color = "var(--primary)";
+        }
+      } catch(e) {
+        stat.innerText = "Upload failed.";
+        stat.style.color = "red";
+      }
+    }
+
+    async function sanityMutate(mutations) {
+      const url = `https://${PRIMARY_SANITY_PROJECT_ID}.api.sanity.io/v2021-06-07/data/mutate/${PRIMARY_SANITY_DATASET}?visibility=sync`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${PRIMARY_SANITY_WRITE_TOKEN}`
+        },
+        body: JSON.stringify({ mutations })
+      });
+      return await res.json();
+    }
+
+    async function submitPost(e) {
+      e.preventDefault();
+      showSpinner(true);
+      const id = 'post-' + Date.now();
+      const payload = {
+        _id: id,
+        _type: "post",
+        name: document.getElementById("postName").value.trim(),
+        image_url: document.getElementById("postImage").value.trim(),
+        genres: document.getElementById("postGenre").value.trim(),
+        season: document.getElementById("postSeason").value.trim(),
+        short_story: document.getElementById("postStory").value.trim(),
+        category: document.getElementById("postCategory").value.trim(),
+        release_date: document.getElementById("postRelease").value.trim()
+      };
+
+      try {
+        await sanityMutate([{ createOrReplace: payload }]);
+        alert("Post Published successfully!");
+        document.getElementById("addPostForm").reset();
+        syncAdminDashboard();
+      } catch(e) {
+        alert("Publish failed");
+      } finally {
+        showSpinner(false);
+      }
+    }
+
+    async function openEpModal(id) {
+      const post = loadedPosts.find(p => p._id === id);
+      if(!post) return;
+
+      document.getElementById("modalPostId").value = id;
+      document.getElementById("modalPostName").innerText = post.name;
+      
+      document.getElementById("epLabel").value = "";
+      document.getElementById("epLink").value = "";
+      document.getElementById("epPlay").value = "";
+      
+      document.getElementById("modal").style.display = "flex";
+      syncEpList(id);
+    }
+
+    async function syncEpList(postId) {
+      const container = document.getElementById("modalEpisodesContainer");
+      container.innerHTML = "Fetching nodes...";
+      try {
+        const query = encodeURIComponent(`*[_type == "episode" && post_id == "${postId}"]`);
+        const url = `https://${PRIMARY_SANITY_PROJECT_ID}.api.sanity.io/v2021-06-07/data/query/${PRIMARY_SANITY_DATASET}?query=${query}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const eps = data.result || [];
+
+        if (eps.length === 0) {
+          container.innerHTML = "No episodes linked yet.";
+        } else {
+          container.innerHTML = eps.map(e => `
+            <div class="list-item" style="padding: 6px 12px;">
+              <span>Ep ${e.episode_label}</span>
+              <button class="delete-btn" onclick="deleteDoc('${e._id}'); closeModal();">Delete</button>
+            </div>
+          `).join("");
+        }
+      } catch(e) {
+        container.innerHTML = "Node error.";
+      }
+    }
+
+    async function submitEpisode(e) {
+      e.preventDefault();
+      showSpinner(true);
+      const postId = document.getElementById("modalPostId").value;
+      const id = 'episode-' + Date.now();
+      const payload = {
+        _id: id,
+        _type: "episode",
+        post_id: postId,
+        episode_label: document.getElementById("epLabel").value.trim(),
+        quality: document.getElementById("epQuality").value,
+        original_link: document.getElementById("epLink").value.trim(),
+        play_link: document.getElementById("epPlay").value.trim()
+      };
+
+      try {
+        await sanityMutate([
+          { createOrReplace: payload },
+          { patch: { id: postId, set: { last_updated: new Date().toISOString() } } }
+        ]);
+        alert("Node added successfully!");
+        closeModal();
+        syncAdminDashboard();
+      } catch(e) {
+        alert("Save failed");
+      } finally {
+        showSpinner(false);
+      }
+    }
+
+    async function deleteFullPost(id) {
+      if(!confirm("Erase fully? This will remove all connected episodes nodes too!")) return;
+      showSpinner(true);
+      try {
+        const query = encodeURIComponent(`*[_type == "episode" && post_id == "${id}"]`);
+        const url = `https://${PRIMARY_SANITY_PROJECT_ID}.api.sanity.io/v2021-06-07/data/query/${PRIMARY_SANITY_DATASET}?query=${query}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const eps = data.result || [];
+
+        const mutations = [{ delete: { id } }];
+        eps.forEach(e => mutations.push({ delete: { id: e._id } }));
+
+        await sanityMutate(mutations);
+        alert("Successfully completely deleted.");
+        syncAdminDashboard();
+      } catch(e) {
+        alert("Delete failed");
+      } finally {
+        showSpinner(false);
+      }
+    }
+
+    async function deleteDoc(id) {
+      if(!confirm("Erase item from Database?")) return;
+      showSpinner(true);
+      try {
+        await sanityMutate([{ delete: { id } }]);
+        syncAdminDashboard();
+      } catch(e) {
+        alert("Erase operation failed.");
+      } finally {
+        showSpinner(false);
+      }
+    }
+
+    async function submitShortener(e) {
+      e.preventDefault();
+      showSpinner(true);
+      const url = document.getElementById("dashUrl").value.trim().replace(/^(https?:\/\/)?(www\.)?/, "");
+      const id = 'shortener-' + Date.now();
+      try {
+        await sanityMutate([{
+          createOrReplace: {
+            _id: id,
+            _type: "shortener",
+            dashboard_url: url,
+            api_key: document.getElementById("apiKey").value.trim()
+          }
+        }]);
+        document.getElementById("shortenerForm").reset();
+        syncAdminDashboard();
+      } catch(e) {
+        alert("Error saving shortener API");
+      } finally {
+        showSpinner(false);
+      }
+    }
+
+    async function submitPremium(e) {
+      e.preventDefault();
+      showSpinner(true);
+      const id = 'premium-' + Date.now();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 30);
+
+      try {
+        await sanityMutate([{
+          createOrReplace: {
+            _id: id,
+            _type: "premiumuser",
+            gmail: document.getElementById("premUser").value.trim().toLowerCase(),
+            password: document.getElementById("premPass").value.trim(),
+            expires_at: expiresAt.toISOString()
+          }
+        }]);
+        document.getElementById("premiumForm").reset();
+        syncAdminDashboard();
+      } catch(e) {
+        alert("Pro registration failed");
+      } finally {
+        showSpinner(false);
+      }
+    }
+
+    async function submitPaidRequest(e) {
+      e.preventDefault();
+      showSpinner(true);
+      const id = 'paid-' + Date.now();
+      try {
+        await sanityMutate([{
+          createOrReplace: {
+            _id: id,
+            _type: "paidrequest",
+            password: document.getElementById("paidPass").value.trim(),
+            original_link: document.getElementById("paidUrl").value.trim()
+          }
+        }]);
+        document.getElementById("paidRequestsForm").reset();
+        syncAdminDashboard();
+      } catch(e) {
+        alert("Link failed to lock.");
+      } finally {
+        showSpinner(false);
+      }
+    }
+
+    async function submitSettings(e) {
+      e.preventDefault();
+      showSpinner(true);
+      const keys = {
+        channel_link: document.getElementById("chanLink").value.trim(),
+        player_password: document.getElementById("playerPass").value.trim(),
+        admin_password: document.getElementById("adminPanelPass").value.trim()
+      };
+
+      const mutations = [];
+      for (let k in keys) {
+        mutations.push({
+          createOrReplace: {
+            _id: 'setting-' + k,
+            _type: "setting",
+            key: k,
+            value: keys[k]
+          }
+        });
+      }
+
+      try {
+        await sanityMutate(mutations);
+        if (keys.admin_password) localStorage.setItem("admin_session", keys.admin_password);
+        alert("System Config Saved Successfully!");
+        syncAdminDashboard();
+      } catch(e) {
+        alert("Settings patch failed");
+      } finally {
+        showSpinner(false);
+      }
+    }
+
+    function toggleSidebar() {
+      document.getElementById("sidebar").classList.toggle("open");
+      document.getElementById("overlay").classList.toggle("show");
+    }
+
+    function switchSection(id) {
+      document.querySelectorAll(".section-card").forEach(c => c.classList.remove("active"));
+      document.querySelectorAll(".menu-item").forEach(m => m.classList.remove("active"));
+      document.getElementById(id).classList.add("active");
+      toggleSidebar();
+    }
+
+    function filterEpList() {
+      const q = document.getElementById("epSearch").value.toLowerCase();
+      document.querySelectorAll("#selectionList .list-item").forEach(item => {
+        const txt = item.innerText.toLowerCase();
+        item.style.display = txt.includes(q) ? "flex" : "none";
+      });
+    }
+
+    function closeModal() { document.getElementById("modal").style.display = "none"; }
+    function showSpinner(show) { document.getElementById("loadingOverlay").style.display = show ? "flex" : "none"; }
+  </script>
+</body>
+</html>
