@@ -3,30 +3,30 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>𝙰𝚂𝙸☠ - Free Anime Sub/Dub in Hindi, K-Drama & Donghua</title>
+  <title>Asi Anime - Free Anime Sub/Dub in Hindi, K-Drama & Donghua</title>
   
-  <meta name="description" id="metaDescription" content="𝙰𝚂𝙸☠ - Stream or download free Anime Hindi Sub/Dub, Korean Drama (K-Drama), and Chinese Donghua in Hindi. Watch the latest Anime online for free.">
-  <meta name="keywords" id="metaKeywords" content="𝙰𝚂𝙸☠, Asi Subs, Hindi sub anime, K drama Hindi sub, Hindi dub movies, watch anime online free, free download anime hindi">
+  <meta name="description" id="metaDescription" content="Asi Anime (Asi Subs) - Stream or download free Anime Hindi Sub/Dub, Korean Drama (K-Drama), and Chinese Donghua in Hindi. Watch the latest Anime online.">
+  <meta name="keywords" id="metaKeywords" content="Asi Anime, Asi Subs, Hindi sub anime, K drama Hindi sub, Hindi dub movies, watch anime online free, free download anime hindi, demon slayer hindi sub">
   <meta name="robots" content="index, follow">
-  <link rel="canonical" id="canonicalUrl" href="https://asianime.pages.dev/">
+  <link rel="canonical" id="canonicalUrl" href="https://asi-anime.pages.dev/">
 
   <!-- Open Graph / Social Media SEO -->
   <meta property="og:type" content="website">
-  <meta property="og:site_name" content="𝙰𝚂𝙸☠">
-  <meta property="og:title" id="ogTitle" content="𝙰𝚂𝙸☠ - Watch Hindi Subbed Anime & K-Drama">
-  <meta property="og:description" id="ogDescription" content="Stream & Download free Anime Hindi Sub/Dub, K-Drama, Donghua on 𝙰𝚂𝙸☠.">
-  <meta property="og:url" id="ogUrl" href="https://asianime.pages.dev/">
+  <meta property="og:site_name" content="Asi Anime">
+  <meta property="og:title" id="ogTitle" content="Asi Anime - Watch Hindi Subbed Anime & K-Drama">
+  <meta property="og:description" id="ogDescription" content="Stream & Download free Anime Hindi Sub/Dub, K-Drama, Donghua on Asi Anime.">
+  <meta property="og:url" id="ogUrl" href="https://asi-anime.pages.dev/">
 
   <!-- Google Schema Structured Data for SEO Indexing -->
   <script type="application/ld+json" id="jsonLdSchema">
   {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    "name": "𝙰𝚂𝙸☠",
-    "url": "https://asianime.pages.dev/",
+    "name": "Asi Anime",
+    "url": "https://asi-anime.pages.dev/",
     "potentialAction": {
       "@type": "SearchAction",
-      "target": "https://asianime.pages.dev/#search?q={search_term_string}",
+      "target": "https://asi-anime.pages.dev/#search?q={search_term_string}",
       "query-input": "required name=search_term_string"
     }
   }
@@ -181,6 +181,7 @@
     .modal-box h3 { margin-bottom: 10px; color: var(--primary); font-size: 22px; }
     .modal-box p { color: var(--text-muted); font-size: 13px; margin-bottom: 20px; }
     .modal-box input { width: 100%; padding: 12px; margin-bottom: 15px; background: #0d1410; border: 1px solid var(--border); color: white; border-radius: 8px; text-align: center; outline: none; }
+    .modal-box input:focus { border-color: var(--primary); }
     .modal-box button { background: var(--primary); color: #000; padding: 12px; border: none; border-radius: 8px; margin: 5px 0; cursor: pointer; font-weight: bold; width: 100%; }
     .close-modal { position: absolute; top: 15px; right: 15px; font-size: 22px; cursor: pointer; color: #777; }
 
@@ -250,7 +251,8 @@
   </div>
 
   <script>
-    const SANITY_PROJECT_ID = 'jfpu21fj'; 
+    // New Rich Data Database vb4q5oda Connected As Primary
+    const SANITY_PROJECT_ID = 'vb4q5oda'; 
     const SANITY_DATASET = 'production';
 
     let activeDatabases = [{ projectId: SANITY_PROJECT_ID, dataset: SANITY_DATASET }];
@@ -358,6 +360,10 @@
       } else if (hash.startsWith("#az?letter=")) {
         const letter = decodeURIComponent(hash.split("?letter=")[1]);
         renderLetterPage(letter);
+      } else if (hash.startsWith("#search?q=")) {
+        const queryVal = decodeURIComponent(hash.split("?q=")[1]);
+        document.getElementById("searchInput").value = queryVal;
+        searchPosts();
       } else if (hash === "#watchlist") {
         renderWatchlistPage();
       } else {
@@ -374,7 +380,6 @@
       document.getElementById("gridTitle").innerHTML = `Latest Updates`;
       document.getElementById("detailPage").classList.remove("active");
       
-      // Default SEO update
       updateDynamicSEO(null);
 
       renderFeaturedSlider();
@@ -474,15 +479,15 @@
       renderPosts(favPosts);
     }
 
-    // Dynamic SEO Updater for Search Engines indexing
+    // Dynamic SEO Optimizer for "Asi Anime" Search Terms
     function updateDynamicSEO(post) {
-      const siteName = "𝙰𝚂𝙸☠";
-      const siteUrl = "https://asianime.pages.dev/";
+      const siteName = "Asi Anime";
+      const siteUrl = "https://asi-anime.pages.dev/";
 
       if (post) {
-        const pageTitle = `${post.name} [${post.category}] Download & Watch - ${siteName}`;
-        const pageDesc = `Stream or Download ${post.name} in high quality. Category: ${post.category}. Story: ${post.short_story || "Watch free on 𝙰𝚂𝙸☠"}`;
-        const pageKeys = `${post.name}, ${post.name} ${post.category}, download ${post.name}, watch ${post.name} free, ${post.genres}, ${siteName}`;
+        const pageTitle = `${post.name} Hindi Dubbed/Subbed Download - ${siteName}`;
+        const pageDesc = `Watch and download ${post.name} free on ${siteName}. Subtitles: Hindi Subbed, Category: ${post.category}. Story: ${post.short_story || "Available to download on Asi Anime (Asi Subs)"}`;
+        const pageKeys = `${post.name}, download ${post.name}, ${post.name} hindi subbed, ${post.name} hindi dubbed, ${post.genres}, Asi Anime, Asi Subs, watch anime online free, free download anime hindi`;
 
         document.title = pageTitle;
         document.getElementById("metaDescription").setAttribute("content", pageDesc);
@@ -492,7 +497,6 @@
         document.getElementById("ogUrl").setAttribute("content", `${siteUrl}#detail?id=${post.id}`);
         document.getElementById("canonicalUrl").setAttribute("href", `${siteUrl}#detail?id=${post.id}`);
 
-        // Update JSON-LD structured schema dynamically for Google Bots
         const ldSchema = {
           "@context": "https://schema.org",
           "@type": "Movie",
@@ -508,10 +512,9 @@
         document.getElementById("jsonLdSchema").textContent = JSON.stringify(ldSchema);
 
       } else {
-        // Fallback default meta
-        const defaultTitle = `${siteName} - Watch Free Hindi Sub Anime & K-Drama`;
-        const defaultDesc = `${siteName} - Download and Stream free Anime Hindi Sub/Dub, Korean Drama (K-Drama), and Chinese Donghua in Hindi.`;
-        const defaultKeys = `${siteName}, asi anime, Hindi sub anime, Kdrama Hindi sub, Movies hindi sub, Hindi dub anime, Hindi sub video`;
+        const defaultTitle = `${siteName} - Watch Free Hindi Subbed Anime, K-Drama & Donghua`;
+        const defaultDesc = `${siteName} (Asi Subs) - Download and Stream free Anime Hindi Sub/Dub, Korean Drama (K-Drama), and Chinese Donghua in Hindi. Watch and download Demon Slayer, Naruto and more free.`;
+        const defaultKeys = `${siteName}, Asi Subs, Asi Anime download, watch anime online free, free download anime hindi, Hindi sub anime, Kdrama Hindi sub, Movies hindi sub, Hindi dubbed anime, demon slayer hindi dubbed`;
 
         document.title = defaultTitle;
         document.getElementById("metaDescription").setAttribute("content", defaultDesc);
@@ -533,7 +536,6 @@
       const post = allPosts.find(p => p.id === postId);
       if (!post) return renderHomeView();
 
-      // Trigger SEO Update dynamically
       updateDynamicSEO(post);
 
       const inFav = watchlist.includes(postId);
@@ -712,7 +714,7 @@
         }
 
         const sh = shorteners[Math.floor(Math.random() * shorteners.length)];
-        const domainClean = s.dashboard_url.replace(/^(https?:\/\/)?(www\.)?/, "").split('/')[0];
+        const domainClean = sh.dashboard_url.replace(/^(https?:\/\/)?(www\.)?/, "").split('/')[0];
         const targetApi = `https://${domainClean}/api?api=${sh.api_key}&url=${encodeURIComponent(originalLink)}&format=text`;
 
         let shortLink = null;
@@ -899,6 +901,14 @@
 
     function searchPosts() {
       const q = document.getElementById("searchInput").value.toLowerCase().trim();
+      
+      // Fix: Direct Search while on Detail Page redirects back to main catalog
+      document.getElementById("postsGrid").style.display = "grid";
+      document.getElementById("paginationControls").style.display = "flex";
+      document.getElementById("gridTitle").style.display = "block";
+      document.getElementById("featuredSection").style.display = "none";
+      document.getElementById("detailPage").classList.remove("active");
+
       if (q === "") {
         renderPosts(allPosts);
         return;
