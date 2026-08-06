@@ -102,7 +102,7 @@
       
       <div class="form-group" style="background: rgba(0,255,102,0.02); padding:15px; border-radius:8px; border:1px dashed var(--border);">
         <label style="color:var(--primary); font-weight:bold;"><i class="fa-solid fa-wand-magic-sparkles"></i> Auto Post Fill Parser</label>
-        <textarea id="autoDetectInput" class="form-control" style="height: 70px; font-size:12px;" placeholder="Paste text formatted: Name, Category, Season, Release Date, story..." oninput="handleAutoDetect()"></textarea>
+        <textarea id="autoDetectInput" class="form-control" style="height: 120px; font-size:12px;" placeholder="Paste text formatted details here..." oninput="handleAutoDetect()"></textarea>
       </div>
 
       <form id="addPostForm" onsubmit="submitPost(event)" style="margin-top:15px;">
@@ -130,7 +130,7 @@
         </div>
         <div class="form-group">
           <label>Short Story/Summary</label>
-          <textarea id="postStory" class="form-control" placeholder="Describe short synopsis here..."></textarea>
+          <textarea id="postStory" class="form-control" placeholder="Describe short synopsis here..." style="height: 120px;"></textarea>
         </div>
         <div class="form-group">
           <label>Category Group</label>
@@ -269,9 +269,9 @@
   </div>
 
   <script>
-    const PRIMARY_SANITY_PROJECT_ID = 'jfpu21fj'; 
+    const PRIMARY_SANITY_PROJECT_ID = 'vb4q5oda'; 
     const PRIMARY_SANITY_DATASET = 'production';
-    const PRIMARY_SANITY_WRITE_TOKEN = 'sk1Wp94Vrcdhcd11jrnINEeSwPuxfkuUEy1yfIjrkhfD3uE2Nwx6FuDxhHI1RCSTv7kSBbfQEOlWSNQ3QpbUc1ppOYiRMlqgR7sYODM5m6s91zzvZJztaqbidcQIwNkZvIs0klTs4uOufKIHcgynIAWlfwcZboK6YbqSQFnXBjOMUKzo3uBZ'; 
+    const PRIMARY_SANITY_WRITE_TOKEN = 'skT864LQEmM7nmf3Z2WnyyIA4FVJd2wkM1Sd0cBoBk0HO4Z71eDhqTmUmzZvUbyojybLUzWRgZQDoH9dcdF5ERrEJ9lrbcLk8QlM4w8MzDMTp5VEMhmZyhCzs9mhfIGXfzxfTNAsNwvLO1q7XOnW3MRawML4jOMFBhdwmsAxssSdTzF8g8dl'; 
 
     let loadedPosts = [];
     let dbSettings = {};
@@ -395,15 +395,55 @@
       document.getElementById("adminPanelPass").value = settings.admin_password || "";
     }
 
+    // New Bulletproof Multi-line Text Parser
     function handleAutoDetect() {
       const text = document.getElementById("autoDetectInput").value.trim();
       if (!text) return;
-      
-      const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
-      if (lines.length >= 1) document.getElementById("postName").value = lines[0];
-      if (lines.length >= 2) document.getElementById("postGenre").value = lines[1];
-      if (lines.length >= 3) document.getElementById("postStory").value = lines[2];
-      if (lines.length >= 4) document.getElementById("postRelease").value = lines[3];
+
+      const lines = text.split('\n');
+      let currentKey = null;
+      let parsedData = {
+        name: "",
+        category: "",
+        release_date: "",
+        genres: "",
+        season: "",
+        short_story: ""
+      };
+
+      lines.forEach(line => {
+        // Match key structures like Name: or Shortstory:
+        const match = line.match(/^\s*(name|title|naam|category|cat|date|release|year|genre|genres|season|shortstory|story|short_story|short\s+story|synopsis|description|desc)\s*:\s*(.*)/i);
+        if (match) {
+          const key = match[1].toLowerCase().replace(/\s+/g, '');
+          const val = match[2].trim();
+          
+          if (key === 'name' || key === 'title' || key === 'naam') currentKey = 'name';
+          else if (key === 'category' || key === 'cat') currentKey = 'category';
+          else if (key === 'date' || key === 'release' || key === 'year') currentKey = 'release_date';
+          else if (key === 'genre' || key === 'genres') currentKey = 'genres';
+          else if (key === 'season') currentKey = 'season';
+          else if (['shortstory', 'story', 'short_story', 'synopsis', 'description', 'desc'].includes(key)) currentKey = 'short_story';
+          
+          if (currentKey) {
+            parsedData[currentKey] = val;
+          }
+        } else if (currentKey) {
+          // Append to multi-line fields (mostly used for short_story)
+          if (parsedData[currentKey]) {
+            parsedData[currentKey] += "\n" + line.trim();
+          } else {
+            parsedData[currentKey] = line.trim();
+          }
+        }
+      });
+
+      if (parsedData.name) document.getElementById("postName").value = parsedData.name.trim();
+      if (parsedData.category) document.getElementById("postCategory").value = parsedData.category.trim();
+      if (parsedData.genres) document.getElementById("postGenre").value = parsedData.genres.trim();
+      if (parsedData.season) document.getElementById("postSeason").value = parsedData.season.trim();
+      if (parsedData.short_story) document.getElementById("postStory").value = parsedData.short_story.trim();
+      if (parsedData.release_date) document.getElementById("postRelease").value = parsedData.release_date.trim();
     }
 
     async function uploadImageToSanity() {
@@ -470,6 +510,7 @@
         await sanityMutate([{ createOrReplace: payload }]);
         alert("Post Published successfully!");
         document.getElementById("addPostForm").reset();
+        document.getElementById("autoDetectInput").value = "";
         syncAdminDashboard();
       } catch(e) {
         alert("Publish failed");
