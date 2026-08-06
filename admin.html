@@ -91,6 +91,7 @@
     <div class="menu-item" onclick="switchSection('shortenersSec')"><i class="fa-solid fa-link"></i> Rotation Links</div>
     <div class="menu-item" onclick="switchSection('premiumSec')"><i class="fa-solid fa-user-shield"></i> Premium Passes</div>
     <div class="menu-item" onclick="switchSection('paidRequestsSec')"><i class="fa-solid fa-lock"></i> Decrypt Keys</div>
+    <div class="menu-item" onclick="switchSection('multiDbSec')"><i class="fa-solid fa-database"></i> Multi-Database Manager</div>
     <div class="menu-item" onclick="switchSection('linksSec')"><i class="fa-solid fa-sliders"></i> Global Settings</div>
   </div>
 
@@ -99,6 +100,13 @@
     <!-- CREATE POST -->
     <div id="addPostSec" class="section-card active">
       <h3>Add New Video Post</h3>
+
+      <div class="form-group">
+        <label style="color:var(--primary); font-weight:bold;"><i class="fa-solid fa-server"></i> Target Sanity Database Node</label>
+        <select id="targetDbSelect" class="form-control">
+          <option value="primary">Primary DB (vb4q5oda - production)</option>
+        </select>
+      </div>
       
       <div class="form-group" style="background: rgba(0,255,102,0.02); padding:15px; border-radius:8px; border:1px dashed var(--border);">
         <label style="color:var(--primary); font-weight:bold;"><i class="fa-solid fa-wand-magic-sparkles"></i> Auto Post Fill Parser</label>
@@ -210,6 +218,35 @@
       </form>
     </div>
 
+    <!-- MULTI-DATABASE MANAGER -->
+    <div id="multiDbSec" class="section-card">
+      <h3>Multi-Database Node Config</h3>
+      <p style="color:#aaa; font-size:13px; margin-bottom:20px;">Main database full hone par naya Sanity Project connect karein. Purana data main site par barabar dikhega!</p>
+      
+      <div class="scroll-list" id="dbNodesList" style="margin-bottom: 25px;"></div>
+
+      <h4>Add New Sanity Database Node</h4>
+      <form id="dbNodeForm" onsubmit="submitDbNode(event)">
+        <div class="form-group">
+          <label>Node Label (e.g. Database Node 2)</label>
+          <input type="text" id="nodeLabel" class="form-control" placeholder="Sanity DB 2" required>
+        </div>
+        <div class="form-group">
+          <label>Sanity Project ID</label>
+          <input type="text" id="nodeProjectId" class="form-control" placeholder="e.g. xyz12345" required>
+        </div>
+        <div class="form-group">
+          <label>Sanity Dataset</label>
+          <input type="text" id="nodeDataset" class="form-control" value="production" required>
+        </div>
+        <div class="form-group">
+          <label>Sanity Write API Token</label>
+          <input type="text" id="nodeToken" class="form-control" placeholder="sk..." required>
+        </div>
+        <button type="submit" class="btn-submit">Connect Database Node</button>
+      </form>
+    </div>
+
     <!-- GENERAL SETTINGS -->
     <div id="linksSec" class="section-card">
       <h3>Global Portal Settings</h3>
@@ -275,6 +312,7 @@
 
     let loadedPosts = [];
     let dbSettings = {};
+    let dbNodes = [];
 
     window.onload = function() {
       verifyDatabaseAccess();
@@ -332,21 +370,51 @@
     async function syncAdminDashboard() {
       showSpinner(true);
       try {
-        const query = encodeURIComponent(`*[_type in ["post", "shortener", "premiumuser", "paidrequest", "setting"]]`);
+        const query = encodeURIComponent(`*[_type in ["post", "shortener", "premiumuser", "paidrequest", "setting", "db_config"]]`);
         const url = `https://${PRIMARY_SANITY_PROJECT_ID}.api.sanity.io/v2021-06-07/data/query/${PRIMARY_SANITY_DATASET}?query=${query}`;
         const res = await fetch(url);
         const data = await res.json();
         const docs = data.result || [];
 
-        loadedPosts = docs.filter(d => d._type === "post");
+        const primaryPosts = docs.filter(d => d._type === "post");
         const shorteners = docs.filter(d => d._type === "shortener");
         const premium = docs.filter(d => d._type === "premiumuser");
         const paid = docs.filter(d => d._type === "paidrequest");
         const settings = docs.filter(d => d._type === "setting");
+        dbNodes = docs.filter(d => d._type === "db_config");
+
+        // Target Database Dropdown Update
+        const targetSelect = document.getElementById("targetDbSelect");
+        targetSelect.innerHTML = `<option value="primary">Primary DB (${PRIMARY_SANITY_PROJECT_ID} - ${PRIMARY_SANITY_DATASET})</option>`;
+        dbNodes.forEach(node => {
+          targetSelect.innerHTML += `<option value="${node._id}">${node.label} (${node.project_id})</option>`;
+        });
+
+        // Fetch posts from secondary databases if active
+        let allPostResults = primaryPosts.map(p => ({ ...p, dbNodeId: 'primary' }));
+
+        for (let node of dbNodes) {
+          try {
+            const secQuery = encodeURIComponent(`*[_type == "post"]`);
+            const secUrl = `https://${node.project_id}.api.sanity.io/v2021-06-07/data/query/${node.dataset}?query=${secQuery}`;
+            const secRes = await fetch(secUrl);
+            const secJson = await secRes.json();
+            if (secJson.result) {
+              secJson.result.forEach(p => {
+                allPostResults.push({ ...p, dbNodeId: node._id });
+              });
+            }
+          } catch(errNode) {
+            console.warn("Failed to load node DB", errNode);
+          }
+        }
+
+        allPostResults.sort((a, b) => new Date(b._updatedAt) - new Date(a._updatedAt));
+        loadedPosts = allPostResults;
 
         settings.forEach(doc => dbSettings[doc.key] = doc.value);
 
-        renderAdmin(loadedPosts, shorteners, premium, paid, dbSettings);
+        renderAdmin(loadedPosts, shorteners, premium, paid, dbSettings, dbNodes);
       } catch(e) {
         console.error(e);
       } finally {
@@ -354,10 +422,10 @@
       }
     }
 
-    function renderAdmin(posts, shorteners, premium, paid, settings) {
+    function renderAdmin(posts, shorteners, premium, paid, settings, nodes) {
       document.getElementById("selectionList").innerHTML = posts.map(p => `
         <div class="list-item">
-          <span>${p.name} [${p.category}]</span>
+          <span>${p.name} [${p.category}] <small style="color:#777;">(${p.dbNodeId === 'primary' ? 'Primary' : 'Node DB'})</small></span>
           <button class="delete-btn" style="background:#0066cc;" onclick="openEpModal('${p._id}')">Edit Nodes</button>
         </div>
       `).join("");
@@ -390,12 +458,22 @@
         </div>
       `).join("");
 
+      document.getElementById("dbNodesList").innerHTML = nodes.length ? nodes.map(n => `
+        <div class="list-item">
+          <div>
+            <strong>${n.label}</strong><br>
+            <small style="color:#777;">ID: ${n.project_id} | Dataset: ${n.dataset}</small>
+          </div>
+          <button class="delete-btn" onclick="deleteDoc('${n._id}')">Remove Node</button>
+        </div>
+      `) : "<div style='padding:15px; color:#555;'>No secondary nodes active.</div>";
+
       document.getElementById("chanLink").value = settings.channel_link || "";
       document.getElementById("playerPass").value = settings.player_password || "";
       document.getElementById("adminPanelPass").value = settings.admin_password || "";
     }
 
-    // New Bulletproof Multi-line Text Parser
+    // Bulletproof Auto-detect line parser
     function handleAutoDetect() {
       const text = document.getElementById("autoDetectInput").value.trim();
       if (!text) return;
@@ -412,7 +490,6 @@
       };
 
       lines.forEach(line => {
-        // Match key structures like Name: or Shortstory:
         const match = line.match(/^\s*(name|title|naam|category|cat|date|release|year|genre|genres|season|shortstory|story|short_story|short\s+story|synopsis|description|desc)\s*:\s*(.*)/i);
         if (match) {
           const key = match[1].toLowerCase().replace(/\s+/g, '');
@@ -429,7 +506,6 @@
             parsedData[currentKey] = val;
           }
         } else if (currentKey) {
-          // Append to multi-line fields (mostly used for short_story)
           if (parsedData[currentKey]) {
             parsedData[currentKey] += "\n" + line.trim();
           } else {
@@ -477,17 +553,49 @@
       }
     }
 
-    async function sanityMutate(mutations) {
-      const url = `https://${PRIMARY_SANITY_PROJECT_ID}.api.sanity.io/v2021-06-07/data/mutate/${PRIMARY_SANITY_DATASET}?visibility=sync`;
+    function getTargetDbNode() {
+      const selectVal = document.getElementById("targetDbSelect").value;
+      if (selectVal === "primary") {
+        return {
+          projectId: PRIMARY_SANITY_PROJECT_ID,
+          dataset: PRIMARY_SANITY_DATASET,
+          token: PRIMARY_SANITY_WRITE_TOKEN
+        };
+      }
+      const foundNode = dbNodes.find(n => n._id === selectVal);
+      if (foundNode) {
+        return {
+          projectId: foundNode.project_id,
+          dataset: foundNode.dataset,
+          token: foundNode.token
+        };
+      }
+      return {
+        projectId: PRIMARY_SANITY_PROJECT_ID,
+        dataset: PRIMARY_SANITY_DATASET,
+        token: PRIMARY_SANITY_WRITE_TOKEN
+      };
+    }
+
+    async function sanityMutateNode(node, mutations) {
+      const url = `https://${node.projectId}.api.sanity.io/v2021-06-07/data/mutate/${node.dataset}?visibility=sync`;
       const res = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${PRIMARY_SANITY_WRITE_TOKEN}`
+          "Authorization": `Bearer ${node.token}`
         },
         body: JSON.stringify({ mutations })
       });
       return await res.json();
+    }
+
+    async function sanityMutate(mutations) {
+      return await sanityMutateNode({
+        projectId: PRIMARY_SANITY_PROJECT_ID,
+        dataset: PRIMARY_SANITY_DATASET,
+        token: PRIMARY_SANITY_WRITE_TOKEN
+      }, mutations);
     }
 
     async function submitPost(e) {
@@ -506,14 +614,15 @@
         release_date: document.getElementById("postRelease").value.trim()
       };
 
+      const targetNode = getTargetDbNode();
       try {
-        await sanityMutate([{ createOrReplace: payload }]);
+        await sanityMutateNode(targetNode, [{ createOrReplace: payload }]);
         alert("Post Published successfully!");
         document.getElementById("addPostForm").reset();
         document.getElementById("autoDetectInput").value = "";
         syncAdminDashboard();
       } catch(e) {
-        alert("Publish failed");
+        alert("Publish failed: " + e.message);
       } finally {
         showSpinner(false);
       }
@@ -531,15 +640,19 @@
       document.getElementById("epPlay").value = "";
       
       document.getElementById("modal").style.display = "flex";
-      syncEpList(id);
+      syncEpList(post);
     }
 
-    async function syncEpList(postId) {
+    async function syncEpList(post) {
       const container = document.getElementById("modalEpisodesContainer");
       container.innerHTML = "Fetching nodes...";
+      const node = (post.dbNodeId === 'primary' || !post.dbNodeId)
+        ? { projectId: PRIMARY_SANITY_PROJECT_ID, dataset: PRIMARY_SANITY_DATASET }
+        : dbNodes.find(n => n._id === post.dbNodeId) || { projectId: PRIMARY_SANITY_PROJECT_ID, dataset: PRIMARY_SANITY_DATASET };
+
       try {
-        const query = encodeURIComponent(`*[_type == "episode" && post_id == "${postId}"]`);
-        const url = `https://${PRIMARY_SANITY_PROJECT_ID}.api.sanity.io/v2021-06-07/data/query/${PRIMARY_SANITY_DATASET}?query=${query}`;
+        const query = encodeURIComponent(`*[_type == "episode" && post_id == "${post._id}"]`);
+        const url = `https://${node.projectId || node.project_id}.api.sanity.io/v2021-06-07/data/query/${node.dataset}?query=${query}`;
         const res = await fetch(url);
         const data = await res.json();
         const eps = data.result || [];
@@ -550,12 +663,31 @@
           container.innerHTML = eps.map(e => `
             <div class="list-item" style="padding: 6px 12px;">
               <span>Ep ${e.episode_label}</span>
-              <button class="delete-btn" onclick="deleteDoc('${e._id}'); closeModal();">Delete</button>
+              <button class="delete-btn" onclick="deleteEpisodeDoc('${e._id}', '${post._id}')">Delete</button>
             </div>
           `).join("");
         }
       } catch(e) {
         container.innerHTML = "Node error.";
+      }
+    }
+
+    async function deleteEpisodeDoc(epId, postId) {
+      if(!confirm("Erase episode?")) return;
+      showSpinner(true);
+      const post = loadedPosts.find(p => p._id === postId);
+      const node = (post.dbNodeId === 'primary' || !post.dbNodeId)
+        ? { projectId: PRIMARY_SANITY_PROJECT_ID, dataset: PRIMARY_SANITY_DATASET, token: PRIMARY_SANITY_WRITE_TOKEN }
+        : dbNodes.find(n => n._id === post.dbNodeId);
+
+      try {
+        await sanityMutateNode(node, [{ delete: { id: epId } }]);
+        closeModal();
+        syncAdminDashboard();
+      } catch(e) {
+        alert("Erase failed");
+      } finally {
+        showSpinner(false);
       }
     }
 
@@ -574,8 +706,13 @@
         play_link: document.getElementById("epPlay").value.trim()
       };
 
+      const post = loadedPosts.find(p => p._id === postId);
+      const node = (post.dbNodeId === 'primary' || !post.dbNodeId)
+        ? { projectId: PRIMARY_SANITY_PROJECT_ID, dataset: PRIMARY_SANITY_DATASET, token: PRIMARY_SANITY_WRITE_TOKEN }
+        : dbNodes.find(n => n._id === post.dbNodeId);
+
       try {
-        await sanityMutate([
+        await sanityMutateNode(node, [
           { createOrReplace: payload },
           { patch: { id: postId, set: { last_updated: new Date().toISOString() } } }
         ]);
@@ -592,9 +729,14 @@
     async function deleteFullPost(id) {
       if(!confirm("Erase fully? This will remove all connected episodes nodes too!")) return;
       showSpinner(true);
+      const post = loadedPosts.find(p => p._id === id);
+      const node = (post.dbNodeId === 'primary' || !post.dbNodeId)
+        ? { projectId: PRIMARY_SANITY_PROJECT_ID, dataset: PRIMARY_SANITY_DATASET, token: PRIMARY_SANITY_WRITE_TOKEN }
+        : dbNodes.find(n => n._id === post.dbNodeId);
+
       try {
         const query = encodeURIComponent(`*[_type == "episode" && post_id == "${id}"]`);
-        const url = `https://${PRIMARY_SANITY_PROJECT_ID}.api.sanity.io/v2021-06-07/data/query/${PRIMARY_SANITY_DATASET}?query=${query}`;
+        const url = `https://${node.projectId || node.project_id}.api.sanity.io/v2021-06-07/data/query/${node.dataset}?query=${query}`;
         const res = await fetch(url);
         const data = await res.json();
         const eps = data.result || [];
@@ -602,7 +744,7 @@
         const mutations = [{ delete: { id } }];
         eps.forEach(e => mutations.push({ delete: { id: e._id } }));
 
-        await sanityMutate(mutations);
+        await sanityMutateNode(node, mutations);
         alert("Successfully completely deleted.");
         syncAdminDashboard();
       } catch(e) {
@@ -620,6 +762,31 @@
         syncAdminDashboard();
       } catch(e) {
         alert("Erase operation failed.");
+      } finally {
+        showSpinner(false);
+      }
+    }
+
+    async function submitDbNode(e) {
+      e.preventDefault();
+      showSpinner(true);
+      const id = 'dbconfig-' + Date.now();
+      try {
+        await sanityMutate([{
+          createOrReplace: {
+            _id: id,
+            _type: "db_config",
+            label: document.getElementById("nodeLabel").value.trim(),
+            project_id: document.getElementById("nodeProjectId").value.trim(),
+            dataset: document.getElementById("nodeDataset").value.trim(),
+            token: document.getElementById("nodeToken").value.trim()
+          }
+        }]);
+        alert("Secondary Database Node linked successfully!");
+        document.getElementById("dbNodeForm").reset();
+        syncAdminDashboard();
+      } catch(e) {
+        alert("Node save failed: " + e.message);
       } finally {
         showSpinner(false);
       }
