@@ -133,10 +133,6 @@
           <input type="text" id="postGenre" class="form-control" placeholder="Action Shounen Fantasy">
         </div>
         <div class="form-group">
-          <label>Season (e.g. Season 01)</label>
-          <input type="text" id="postSeason" class="form-control" placeholder="Season 1">
-        </div>
-        <div class="form-group">
           <label>Short Story/Summary</label>
           <textarea id="postStory" class="form-control" placeholder="Describe short synopsis here..." style="height: 120px;"></textarea>
         </div>
@@ -278,6 +274,10 @@
       <form id="episodeForm" onsubmit="submitEpisode(event)" style="margin-top:15px; padding-bottom: 15px; border-bottom: 1px solid var(--border);">
         <input type="hidden" id="modalPostId">
         <div class="form-group">
+          <label>Season (e.g. Season 01, Season 02, Movie)</label>
+          <input type="text" id="epSeason" class="form-control" required placeholder="Season 01" value="Season 01">
+        </div>
+        <div class="form-group">
           <label>Episode Label (e.g. 01, Full Pack, Special)</label>
           <input type="text" id="epLabel" class="form-control" required placeholder="01">
         </div>
@@ -301,7 +301,7 @@
       </form>
 
       <h4 style="margin: 15px 0 10px 0; color:var(--primary);">Linked Node Nodes:</h4>
-      <div class="scroll-list" id="modalEpisodesContainer" style="max-height:120px;"></div>
+      <div class="scroll-list" id="modalEpisodesContainer" style="max-height:120px; padding: 10px;"></div>
     </div>
   </div>
 
@@ -485,12 +485,11 @@
         category: "",
         release_date: "",
         genres: "",
-        season: "",
         short_story: ""
       };
 
       lines.forEach(line => {
-        const match = line.match(/^\s*(name|title|naam|category|cat|date|release|year|genre|genres|season|shortstory|story|short_story|short\s+story|synopsis|description|desc)\s*:\s*(.*)/i);
+        const match = line.match(/^\s*(name|title|naam|category|cat|date|release|year|genre|genres|shortstory|story|short_story|short\s+story|synopsis|description|desc)\s*:\s*(.*)/i);
         if (match) {
           const key = match[1].toLowerCase().replace(/\s+/g, '');
           const val = match[2].trim();
@@ -499,7 +498,6 @@
           else if (key === 'category' || key === 'cat') currentKey = 'category';
           else if (key === 'date' || key === 'release' || key === 'year') currentKey = 'release_date';
           else if (key === 'genre' || key === 'genres') currentKey = 'genres';
-          else if (key === 'season') currentKey = 'season';
           else if (['shortstory', 'story', 'short_story', 'synopsis', 'description', 'desc'].includes(key)) currentKey = 'short_story';
           
           if (currentKey) {
@@ -517,7 +515,6 @@
       if (parsedData.name) document.getElementById("postName").value = parsedData.name.trim();
       if (parsedData.category) document.getElementById("postCategory").value = parsedData.category.trim();
       if (parsedData.genres) document.getElementById("postGenre").value = parsedData.genres.trim();
-      if (parsedData.season) document.getElementById("postSeason").value = parsedData.season.trim();
       if (parsedData.short_story) document.getElementById("postStory").value = parsedData.short_story.trim();
       if (parsedData.release_date) document.getElementById("postRelease").value = parsedData.release_date.trim();
     }
@@ -608,7 +605,6 @@
         name: document.getElementById("postName").value.trim(),
         image_url: document.getElementById("postImage").value.trim(),
         genres: document.getElementById("postGenre").value.trim(),
-        season: document.getElementById("postSeason").value.trim(),
         short_story: document.getElementById("postStory").value.trim(),
         category: document.getElementById("postCategory").value.trim(),
         release_date: document.getElementById("postRelease").value.trim()
@@ -635,6 +631,7 @@
       document.getElementById("modalPostId").value = id;
       document.getElementById("modalPostName").innerText = post.name;
       
+      document.getElementById("epSeason").value = "Season 01";
       document.getElementById("epLabel").value = "";
       document.getElementById("epLink").value = "";
       document.getElementById("epPlay").value = "";
@@ -660,12 +657,29 @@
         if (eps.length === 0) {
           container.innerHTML = "No episodes linked yet.";
         } else {
-          container.innerHTML = eps.map(e => `
-            <div class="list-item" style="padding: 6px 12px;">
-              <span>Ep ${e.episode_label}</span>
-              <button class="delete-btn" onclick="deleteEpisodeDoc('${e._id}', '${post._id}')">Delete</button>
-            </div>
-          `).join("");
+          // Group by Season in modal preview
+          const seasons = {};
+          eps.forEach(e => {
+            const s = e.season || "Season 01";
+            if (!seasons[s]) seasons[s] = [];
+            seasons[s].push(e);
+          });
+
+          let html = "";
+          Object.keys(seasons).sort().forEach(s => {
+            html += `<div style="margin-bottom:12px; border-bottom:1px dashed rgba(0, 255, 102, 0.2); padding-bottom:6px;">
+              <strong style="color:var(--primary); font-size:12px; text-transform:uppercase;">${s}</strong>`;
+            seasons[s].forEach(e => {
+              html += `
+                <div class="list-item" style="padding: 6px 10px; margin-top:5px; background:rgba(0,0,0,0.2);">
+                  <span>Ep ${e.episode_label} [${e.quality || 'N/A'}]</span>
+                  <button class="delete-btn" onclick="deleteEpisodeDoc('${e._id}', '${post._id}')">Delete</button>
+                </div>
+              `;
+            });
+            html += `</div>`;
+          });
+          container.innerHTML = html;
         }
       } catch(e) {
         container.innerHTML = "Node error.";
@@ -700,6 +714,7 @@
         _id: id,
         _type: "episode",
         post_id: postId,
+        season: document.getElementById("epSeason").value.trim() || "Season 01",
         episode_label: document.getElementById("epLabel").value.trim(),
         quality: document.getElementById("epQuality").value,
         original_link: document.getElementById("epLink").value.trim(),
