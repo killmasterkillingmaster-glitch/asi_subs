@@ -133,44 +133,101 @@
     .slide-title { font-weight: bold; font-size: 14px; color: white; margin-top: 4px; }
     .slide-tag { font-size: 10px; color: var(--primary); font-weight: 800; text-transform: uppercase; }
 
-    /* Grid Layout */
+    /* Grid Layout - Updated based on requirements */
     .section-title { padding: 10px 5%; font-size: 22px; text-transform: uppercase; font-weight: 800; display: flex; justify-content: space-between; align-items: center; }
     .section-title span { color: var(--primary); }
     
     .posts-grid { 
       display: grid; 
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); 
-      gap: 25px; 
+      /* Larger cards to match screenshot */
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); 
+      gap: 35px 25px; 
       padding: 20px 5%; 
     }
     
     .post-card { 
-      background: var(--card-bg); 
-      border-radius: 12px; 
-      overflow: hidden; 
+      background: transparent; 
       position: relative; 
       cursor: pointer; 
-      border: 1px solid var(--border); 
       transition: 0.3s;
-      aspect-ratio: 16 / 10;
       display: flex;
       flex-direction: column;
     }
-    .post-card:hover { transform: translateY(-8px); border-color: var(--primary); box-shadow: 0 10px 25px var(--primary-glow); }
-    .post-card img { width: 100%; height: 100%; object-fit: cover; }
+    .post-card:hover { transform: translateY(-5px); }
     
-    .new-badge { position: absolute; top: 10px; left: 10px; background: var(--primary); color: #000; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 900; z-index: 10; }
-    .post-card .category-tag { position: absolute; top: 10px; right: 10px; background: rgba(0, 0, 0, 0.7); color: var(--primary); padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 800; border: 1px solid var(--border); z-index: 10; }
-    .post-card .title-text { 
-      padding: 10px; 
-      font-size: 13px; 
-      text-align: center; 
-      font-weight: 700; 
-      background: rgba(10, 20, 16, 0.9);
+    /* Cover Image Wrapper */
+    .post-image-wrapper {
+      position: relative;
       width: 100%;
-      overflow: hidden; 
-      text-overflow: ellipsis; 
-      white-space: nowrap; 
+      aspect-ratio: 16 / 9; /* Widescreen aspect ratio like screenshot */
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    }
+    .post-card:hover .post-image-wrapper {
+      border-color: var(--primary); 
+      box-shadow: 0 8px 25px var(--primary-glow); 
+    }
+    
+    .post-image-wrapper img { 
+      width: 100%; 
+      height: 100%; 
+      object-fit: cover; 
+    }
+    
+    /* Unique Black Box (No Image Fallback) */
+    .black-box-placeholder {
+      width: 100%; 
+      height: 100%; 
+      background: linear-gradient(135deg, #050a07 0%, #0d1a14 100%); 
+      display: flex; 
+      flex-direction: column;
+      align-items: center; 
+      justify-content: center; 
+      text-align: center; 
+      padding: 20px; 
+      box-sizing: border-box;
+    }
+    .black-box-placeholder i {
+      font-size: 45px;
+      color: rgba(0, 255, 102, 0.2);
+      margin-bottom: 15px;
+    }
+    .black-box-placeholder span {
+      color: var(--primary); 
+      font-weight: 800; 
+      font-size: 18px; 
+      word-break: break-word;
+      text-shadow: 0px 3px 5px rgba(0,0,0,0.6);
+    }
+
+    .new-badge { position: absolute; top: 10px; left: 10px; background: var(--primary); color: #000; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 900; z-index: 10; text-transform: uppercase; }
+    .post-image-wrapper .category-tag { position: absolute; bottom: 10px; right: 10px; background: #e67e22; color: #fff; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+    
+    /* Text Below Image */
+    .post-card .title-text { 
+      padding: 15px 5px 10px 5px; 
+      font-size: 17px; 
+      text-align: left; 
+      font-weight: 700; 
+      color: white;
+      line-height: 1.4;
+      width: 100%;
+    }
+    
+    /* Line under Title */
+    .post-card .title-divider {
+      width: 100%;
+      height: 1px;
+      background: var(--border);
+      margin-top: 5px;
+      transition: 0.3s;
+    }
+    .post-card:hover .title-divider {
+      background: var(--primary);
+      box-shadow: 0 0 10px var(--primary-glow);
     }
 
     /* Detail Page */
@@ -220,7 +277,7 @@
     @media (max-width: 768px) {
       .header { padding: 12px 15px; flex-wrap: wrap; gap: 10px; }
       .search-bar { order: 3; margin: 0; width: 100%; flex: 1 1 100%; }
-      .posts-grid { grid-template-columns: 1fr; gap: 20px; padding: 15px; }
+      .posts-grid { grid-template-columns: 1fr; gap: 30px; padding: 15px; } /* Single column view on mobile */
       .detail-header { justify-content: center; text-align: center; }
     }
   </style>
@@ -373,6 +430,11 @@
       const hash = window.location.hash || "#home";
       closeModal();
       currentPage = 1;
+
+      // Clear search input if not in search view
+      if (!hash.startsWith("#search?q=")) {
+        document.getElementById("searchInput").value = "";
+      }
       
       if (hash.startsWith("#detail?id=")) {
         const postId = hash.split("?id=")[1];
@@ -424,8 +486,9 @@
       slider.innerHTML = selected.map(p => `
         <div class="slide-card" onclick="window.location.hash = '#detail?id=${p.id}'">
           ${p.image_url ? `<img src="${p.image_url}" alt="${p.name}">` : `
-            <div style="width:100%; height:100%; background:#070d0a; border: 1px solid var(--border); display:flex; align-items:center; justify-content:center; text-align:center; padding:15px; box-sizing:border-box;">
-              <span style="color:var(--primary); font-weight:800; font-size:14px; word-break:break-word;">${p.name}</span>
+            <div class="black-box-placeholder">
+              <i class="fa-solid fa-image"></i>
+              <span>${p.name}</span>
             </div>
           `}
           <div class="slide-info">
@@ -436,6 +499,7 @@
       `).join("");
     }
 
+    // UPDATED RENDER POSTS FUNCTION (Image Wrapper + Text below + Line)
     function renderPosts(posts) {
       currentFilteredPosts = posts;
       const grid = document.getElementById("postsGrid");
@@ -455,16 +519,18 @@
         const isNew = (new Date() - new Date(p.updatedAt)) < (72 * 60 * 60 * 1000);
         return `
           <div class="post-card" onclick="window.location.hash = '#detail?id=${p.id}'">
-            ${isNew ? '<span class="new-badge">NEW</span>' : ''}
-            <span class="category-tag">${p.category}</span>
-            
-            ${p.image_url ? `<img src="${p.image_url}" alt="${p.name}">` : `
-              <div style="flex-grow:1; width:100%; height:100%; min-height:130px; background:#070d0a; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; text-align:center; padding:15px; box-sizing:border-box;">
-                <span style="color:var(--primary); font-weight:800; font-size:14px; word-break:break-word;">${p.name}</span>
-              </div>
-            `}
-            
+            <div class="post-image-wrapper">
+              ${isNew ? '<span class="new-badge">NEW</span>' : ''}
+              <span class="category-tag">${p.category}</span>
+              ${p.image_url ? `<img src="${p.image_url}" alt="${p.name}">` : `
+                <div class="black-box-placeholder">
+                  <i class="fa-solid fa-image"></i>
+                  <span>${p.name}</span>
+                </div>
+              `}
+            </div>
             <div class="title-text">${p.name}</div>
+            <div class="title-divider"></div>
           </div>
         `;
       }).join("");
@@ -580,8 +646,9 @@
         <div class="detail-header" style="display:flex; flex-direction:column; gap:20px; align-items:flex-start;">
           
           ${post.image_url ? `<img src="${post.image_url}" alt="${post.name}" style="width:100%; max-width:320px; height:auto; border-radius:12px; border:1px solid var(--border); align-self:center;">` : `
-            <div style="width:100%; max-width:320px; aspect-ratio:16/10; background:#070d0a; border: 1px solid var(--border); border-radius:12px; display:flex; align-items:center; justify-content:center; text-align:center; padding:20px; box-sizing:border-box; align-self:center;">
-              <span style="color:var(--primary); font-weight:800; font-size:18px; word-break:break-word;">${post.name}</span>
+            <div class="black-box-placeholder" style="width:100%; max-width:320px; aspect-ratio:16/9; border-radius:12px; border: 1px solid var(--border); align-self:center;">
+              <i class="fa-solid fa-image"></i>
+              <span>${post.name}</span>
             </div>
           `}
           
@@ -1012,20 +1079,26 @@
       }
     }
 
+    // UPDATED SEARCH LOGIC
     function searchPosts() {
       const q = document.getElementById("searchInput").value.toLowerCase().trim();
       
-      // Fix: Direct Search while on Detail Page redirects back to main catalog
       document.getElementById("postsGrid").style.display = "grid";
       document.getElementById("paginationControls").style.display = "flex";
       document.getElementById("gridTitle").style.display = "block";
       document.getElementById("featuredSection").style.display = "none";
       document.getElementById("detailPage").classList.remove("active");
 
+      // Reset to all posts if search is empty
       if (q === "") {
+        document.getElementById("gridTitle").innerHTML = `Latest Updates`;
         renderPosts(allPosts);
         return;
       }
+      
+      // Update Grid Title for clarity
+      document.getElementById("gridTitle").innerHTML = `Search Results: <span>"${q}"</span>`;
+      
       const res = allPosts.filter(p => 
         p.name.toLowerCase().includes(q) || 
         p.genres?.toLowerCase().includes(q) || 
